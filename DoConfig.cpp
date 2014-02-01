@@ -373,9 +373,11 @@ int main(int argc, char* argv[]){
 		labelmap->align(FL_ALIGN_RIGHT);
 		labelmap->end();
 		
-		for (char i=0;i<6;i++){
-			Fl_Button* btn = new Fl_Button(345, 150+30*i, 35, 20, "pick");
-			btn->callback(&pickJsButton, (void*)(long)(i+1));
+		if (JoystickSingleton::Instance().NumJoysticks() > 0){
+			for (char i=0;i<6;i++){
+				Fl_Button* btn = new Fl_Button(345, 150+30*i, 35, 20, "pick");
+				btn->callback(&pickJsButton, (void*)(long)(i+1));
+			}
 		}
 
 	joystuffcontainer->end();
