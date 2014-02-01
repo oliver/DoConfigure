@@ -56,14 +56,14 @@ int RadioRow::value(){
 	char i;
 	for(i=0;i<6;i++){
 		if(this->buttons[i]->value()){
-			return (int)i;
+			return (int)i+1;
 		}
 	}
 	return 0;
 }
 
 void RadioRow::value(int input){
-	this->buttons[input]->setonly();
+	this->buttons[input-1]->setonly();
 }
 
 Fl_Round_Button *movear;
@@ -119,7 +119,7 @@ void read_Config(){
 	}
 	for(char i=0;i<8;i++){
 		if(config.buttons[i]<9 && config.buttons[i]>0){
-			joyRows[i]->value(config.buttons[i] -1);
+			joyRows[i]->value(config.buttons[i]);
 		}
 	}
 	fd.close();
