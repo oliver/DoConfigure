@@ -72,9 +72,9 @@ const char* ActionName(int actionNumber){
 		case 1: return "Jump";
 		case 2: return "Attack";
 		case 3: return "Weapon+";
-		case 4: return "Weapon-";
-		case 5: return "Item";
-		case 6: return "Map";
+		case 4: return "Item";
+		case 5: return "Map";
+		case 6: return "Weapon-";
 	}
 	return "<unknown>";
 }
