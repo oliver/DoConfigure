@@ -13,6 +13,7 @@
 #include "FL/Fl_Radio_Round_Button.H"
 #include "FL/Fl_Choice.H"
 #include "FL/Fl_Check_Button.H"
+#include "SDL/SDL.h"
 
 #define HEADER "DOUKUTSU20041206"
 #define TEXT "Courier New"
@@ -43,11 +44,11 @@ RadioRow::RadioRow(char offset){
 	char *temp = new char[2];
 	*(temp) = (char)(49+offset); //Muhahahahahahah!
 	*(temp+1) = '\0';
-	this->group = new Fl_Group(140+offset*30, 150, 30, 180);
+	this->group = new Fl_Group(110+offset*30, 150, 30, 180);
 	this->group->label(temp);
 	this->group->align(FL_ALIGN_TOP_LEFT);
 	for(char i=0;i<6;i++){
-		this->buttons[i] = new Fl_Radio_Round_Button(140+offset*30, 150+30*i, 30, 30);
+		this->buttons[i] = new Fl_Radio_Round_Button(110+offset*30, 150+30*i, 30, 30);
 	}
 	this->group->end();
 }
@@ -66,6 +67,92 @@ void RadioRow::value(int input){
 	this->buttons[input-1]->setonly();
 }
 
+
+class JoystickReader{
+public:
+	friend class JoystickSingleton;
+	~JoystickReader();
+
+	typedef void (*ButtonSelectedCb) (int,void*);
+	void callback(ButtonSelectedCb callbackFunc, void* callbackUserdata);
+private:
+	JoystickReader(SDL_Joystick* js_);
+	static void OnTimer (void* userdata);
+
+	SDL_Joystick* js;
+	ButtonSelectedCb callbackFunc;
+	void* callbackUserdata;
+};
+
+class JoystickSingleton {
+public:
+	static JoystickSingleton& Instance();
+	JoystickReader* CreateReader();
+	int NumJoysticks() const;
+	const char* Name() const;
+private:
+	JoystickSingleton();
+	SDL_Joystick* js;
+};
+
+
+JoystickReader::JoystickReader(SDL_Joystick* js_)
+: js(js_), callbackFunc(NULL), callbackUserdata(NULL)
+{
+	Fl::add_timeout(0.1, OnTimer, this);
+}
+
+JoystickReader::~JoystickReader(){
+	Fl::remove_timeout(OnTimer, this);
+}
+
+void JoystickReader::callback(ButtonSelectedCb callbackFunc_, void* callbackUserdata_){
+	callbackFunc = callbackFunc_;
+	callbackUserdata = callbackUserdata_;
+}
+
+void JoystickReader::OnTimer(void* userdata){
+	JoystickReader* self = (JoystickReader*)userdata;
+	SDL_JoystickUpdate();
+	const int numButtons = SDL_JoystickNumButtons(self->js);
+	for (int i = 0; i < numButtons; i++) {
+		if (SDL_JoystickGetButton(self->js, i)){
+			if (self->callbackFunc)
+                self->callbackFunc(i, self->callbackUserdata);
+			return;
+		}
+	}
+	Fl::repeat_timeout(0.1, OnTimer, self);
+}
+
+
+JoystickSingleton& JoystickSingleton::Instance(){
+	static JoystickSingleton staticInstance;
+	return staticInstance;
+}
+
+JoystickSingleton::JoystickSingleton(){
+	SDL_Init(SDL_INIT_JOYSTICK);
+	if (SDL_NumJoysticks() == 0)
+		return;
+
+	js = SDL_JoystickOpen(0); // always use the first joystick
+	SDL_JoystickEventState(SDL_QUERY);
+}
+
+JoystickReader* JoystickSingleton::CreateReader(){
+	return new JoystickReader(js);
+}
+
+int JoystickSingleton::NumJoysticks() const{
+	return SDL_NumJoysticks();
+}
+
+const char* JoystickSingleton::Name() const{
+	return SDL_JoystickName(0);
+}
+
+
 Fl_Round_Button *movear;
 Fl_Round_Button *movegt;
 
@@ -81,6 +168,56 @@ Fl_Check_Button *joychoice;
 Fl_Group *joystuffcontainer;
 RadioRow *joyRows[8];
 
+
+class ButtonSelectionDialog {
+public:
+	ButtonSelectionDialog(int actionNumber);
+	~ButtonSelectionDialog();
+
+private:
+	static void OnButtonSelected(int button, void* userdata);
+	static void OnCancelButton(Fl_Widget*, void* userdata);
+	static void OnClose (Fl_Widget*, void* userdata);
+
+	int actionNumber;
+	Fl_Window* win;
+	std::string labelText;
+	JoystickReader* buttonReader;
+};
+
+ButtonSelectionDialog::ButtonSelectionDialog(int actionNumber_){
+	actionNumber = actionNumber_;
+	buttonReader = JoystickSingleton::Instance().CreateReader();
+	buttonReader->callback(OnButtonSelected, this);
+
+	win = new Fl_Window(470, 130, "Press Joystick Button");
+	labelText = std::string("Press button on joystick \"") + JoystickSingleton::Instance().Name() + "\"";
+	Fl_Group* label = new Fl_Group(10, 35, 450, 5, labelText.c_str());
+	label->end();
+	Fl_Button* btn = new Fl_Button(355, 90, 100, 25, "Cancel");
+	btn->callback(OnClose, this);
+	win->callback(OnClose, this);
+	win->end();
+	win->set_modal();
+	win->show();
+}
+
+ButtonSelectionDialog::~ButtonSelectionDialog(){
+	delete buttonReader;
+	delete win;
+}
+
+void ButtonSelectionDialog::OnButtonSelected(int button, void* userdata){
+	ButtonSelectionDialog* self = (ButtonSelectionDialog*)userdata;
+	joyRows[button]->value(self->actionNumber);
+	delete self;
+}
+
+void ButtonSelectionDialog::OnClose (Fl_Widget*, void* userdata){
+	ButtonSelectionDialog* self = (ButtonSelectionDialog*)userdata;
+	delete self;
+}
+
 void quit(Fl_Widget*, void*){
 	std::exit(0);
 }
@@ -92,6 +229,13 @@ void activatejoy(Fl_Widget*, void*){
 		joystuffcontainer->activate();
 	}
 }
+
+ButtonSelectionDialog* buttonSelector = NULL;
+void pickJsButton(Fl_Widget*, void* userdata){
+	int actionNumber = (int)userdata;
+	buttonSelector = new ButtonSelectionDialog(actionNumber);
+}
+
 void read_Config(){
 	std::fstream fd;
 	data config;
@@ -124,6 +268,7 @@ void read_Config(){
 	}
 	fd.close();
 }
+
 
 void write_Config(Fl_Widget*, void*){
 	std::fstream fd;
@@ -214,6 +359,11 @@ int main(int argc, char* argv[]){
 		labelmap->align(FL_ALIGN_RIGHT);
 		labelmap->end();
 		
+		for (char i=0;i<6;i++){
+			Fl_Button* btn = new Fl_Button(345, 150+30*i, 35, 20, "pick");
+			btn->callback(&pickJsButton, (void*)(long)(i+1));
+		}
+
 	joystuffcontainer->end();
 	
 	Fl_Button *okaybutton = new Fl_Button(10, 340, 185, 30, "Okay");
@@ -224,6 +374,10 @@ int main(int argc, char* argv[]){
 	mainw->end();
 	mainw->show(argc, argv);
 	
+	char joystickLabel[100];
+	sprintf(joystickLabel, "%s (%d found)", joychoice->label(), JoystickSingleton::Instance().NumJoysticks());
+	joychoice->label(joystickLabel);
+
 	read_Config();
 	Fl::option(Fl::OPTION_VISIBLE_FOCUS, false);
 	return Fl::run();
