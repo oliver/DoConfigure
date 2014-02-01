@@ -67,6 +67,17 @@ void RadioRow::value(int input){
 	this->buttons[input-1]->setonly();
 }
 
+const char* ActionName(int actionNumber){
+	switch (actionNumber) {
+		case 1: return "Jump";
+		case 2: return "Attack";
+		case 3: return "Weapon+";
+		case 4: return "Weapon-";
+		case 5: return "Item";
+		case 6: return "Map";
+	}
+	return "<unknown>";
+}
 
 #ifdef HAVE_SDL
 class JoystickReader{
@@ -195,15 +206,15 @@ ButtonSelectionDialog::ButtonSelectionDialog(int actionNumber_){
 	buttonReader = JoystickSingleton::Instance().CreateReader();
 	buttonReader->callback(OnButtonSelected, this);
 
-	win = new Fl_Window(470, 130, "Press Joystick Button");
-	sprintf(labelText, "Press button on joystick \"%s\"", JoystickSingleton::Instance().Name());
-	Fl_Group* label = new Fl_Group(10, 35, 450, 5, labelText);
+	win = new Fl_Window(550, 130, "Press Joystick Button");
+	sprintf(labelText, "Press button for \"%s\" on joystick \"%s\"", ActionName(actionNumber), JoystickSingleton::Instance().Name());
+	Fl_Group* label = new Fl_Group(10, 35, 530, 5, labelText);
 	label->end();
-	errorLabel = new Fl_Group(15, 70, 450, 5);
+	errorLabel = new Fl_Group(15, 70, 530, 5);
 	errorLabel->labelcolor((Fl_Color)1);
 	errorLabel->hide();
 	errorLabel->end();
-	Fl_Button* btn = new Fl_Button(355, 90, 100, 25, "Cancel");
+	Fl_Button* btn = new Fl_Button(435, 90, 100, 25, "Cancel");
 	btn->callback(OnClose, this);
 	win->callback(OnClose, this);
 	win->end();
@@ -354,30 +365,14 @@ int main(int argc, char* argv[]){
 			joyRows[i] = new RadioRow(i);
 		}
 		//There's no Label class alright? I'll switch it as soon as one is introduced.
-		Fl_Group *labeljump = new Fl_Group(10, 150, 10, 20);
-		labeljump->label("Jump:");
-		labeljump->align(FL_ALIGN_RIGHT);
-		labeljump->end();
-		Fl_Group *labelattack = new Fl_Group(10, 180, 10, 20);
-		labelattack->label("Attack:");
-		labelattack->align(FL_ALIGN_RIGHT);
-		labelattack->end();
-		Fl_Group *labelweaponup = new Fl_Group(10, 210, 10, 20);
-		labelweaponup->label("Weapon+:");
-		labelweaponup->align(FL_ALIGN_RIGHT);
-		labelweaponup->end();
-		Fl_Group *labelweapondown = new Fl_Group(10, 240, 10, 20);
-		labelweapondown->label("Weapon-:");
-		labelweapondown->align(FL_ALIGN_RIGHT);
-		labelweapondown->end();
-		Fl_Group *labelitem = new Fl_Group(10, 270, 10, 20);
-		labelitem->label("Items:");
-		labelitem->align(FL_ALIGN_RIGHT);
-		labelitem->end();
-		Fl_Group *labelmap = new Fl_Group(10, 300, 10, 20);
-		labelmap->label("Map:");
-		labelmap->align(FL_ALIGN_RIGHT);
-		labelmap->end();
+		for (char i=0;i<6;i++) {
+			Fl_Group *labeljump = new Fl_Group(10, 150+i*30, 10, 20);
+			char* label=new char[strlen(ActionName(i+1))+2];
+			sprintf(label, "%s:", ActionName(i+1));
+			labeljump->label(label);
+			labeljump->align(FL_ALIGN_RIGHT);
+			labeljump->end();
+		}
 		
 #ifdef HAVE_SDL
 		if (JoystickSingleton::Instance().NumJoysticks() > 0){
