@@ -7,6 +7,10 @@ else
 	-DHAVE_SDL=1
 endif
 
+all: DoConfigure
+
+clean:
+	rm -f DoConfigure
 
 DoConfigure: DoConfig.cpp
 	g++ DoConfig.cpp -o DoConfigure -s $$(fltk-config --cxxflags --ldflags) $(SDL_OPTIONS)
