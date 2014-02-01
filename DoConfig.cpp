@@ -68,6 +68,7 @@ void RadioRow::value(int input){
 }
 
 
+#ifdef HAVE_SDL
 class JoystickReader{
 public:
 	friend class JoystickSingleton;
@@ -151,6 +152,7 @@ int JoystickSingleton::NumJoysticks() const{
 const char* JoystickSingleton::Name() const{
 	return SDL_JoystickName(0);
 }
+#endif
 
 
 Fl_Round_Button *movear;
@@ -169,6 +171,7 @@ Fl_Group *joystuffcontainer;
 RadioRow *joyRows[8];
 
 
+#ifdef HAVE_SDL
 class ButtonSelectionDialog {
 public:
 	ButtonSelectionDialog(int actionNumber);
@@ -231,6 +234,7 @@ void ButtonSelectionDialog::OnClose (Fl_Widget*, void* userdata){
 	ButtonSelectionDialog* self = (ButtonSelectionDialog*)userdata;
 	delete self;
 }
+#endif
 
 void quit(Fl_Widget*, void*){
 	std::exit(0);
@@ -244,11 +248,13 @@ void activatejoy(Fl_Widget*, void*){
 	}
 }
 
+#ifdef HAVE_SDL
 ButtonSelectionDialog* buttonSelector = NULL;
 void pickJsButton(Fl_Widget*, void* userdata){
 	int actionNumber = (int)userdata;
 	buttonSelector = new ButtonSelectionDialog(actionNumber);
 }
+#endif
 
 void read_Config(){
 	std::fstream fd;
@@ -373,12 +379,14 @@ int main(int argc, char* argv[]){
 		labelmap->align(FL_ALIGN_RIGHT);
 		labelmap->end();
 		
+#ifdef HAVE_SDL
 		if (JoystickSingleton::Instance().NumJoysticks() > 0){
 			for (char i=0;i<6;i++){
 				Fl_Button* btn = new Fl_Button(345, 150+30*i, 35, 20, "pick");
 				btn->callback(&pickJsButton, (void*)(long)(i+1));
 			}
 		}
+#endif
 
 	joystuffcontainer->end();
 	
@@ -390,9 +398,11 @@ int main(int argc, char* argv[]){
 	mainw->end();
 	mainw->show(argc, argv);
 	
+#ifdef HAVE_SDL
 	char joystickLabel[100];
 	sprintf(joystickLabel, "%s (%d found)", joychoice->label(), JoystickSingleton::Instance().NumJoysticks());
 	joychoice->label(joystickLabel);
+#endif
 
 	read_Config();
 	Fl::option(Fl::OPTION_VISIBLE_FOCUS, false);
