@@ -73,7 +73,7 @@ public:
 	friend class JoystickSingleton;
 	~JoystickReader();
 
-	typedef void (*ButtonSelectedCb) (int,void*);
+	typedef bool (*ButtonSelectedCb) (int,void*);
 	void callback(ButtonSelectedCb callbackFunc, void* callbackUserdata);
 private:
 	JoystickReader(SDL_Joystick* js_);
@@ -118,8 +118,8 @@ void JoystickReader::OnTimer(void* userdata){
 	for (int i = 0; i < numButtons; i++) {
 		if (SDL_JoystickGetButton(self->js, i)){
 			if (self->callbackFunc)
-                self->callbackFunc(i, self->callbackUserdata);
-			return;
+				if (self->callbackFunc(i, self->callbackUserdata))
+					return;
 		}
 	}
 	Fl::repeat_timeout(0.1, OnTimer, self);
@@ -175,13 +175,15 @@ public:
 	~ButtonSelectionDialog();
 
 private:
-	static void OnButtonSelected(int button, void* userdata);
+	static bool OnButtonSelected(int button, void* userdata);
 	static void OnCancelButton(Fl_Widget*, void* userdata);
 	static void OnClose (Fl_Widget*, void* userdata);
 
 	int actionNumber;
 	Fl_Window* win;
-	std::string labelText;
+	char labelText[100];
+	Fl_Group* errorLabel;
+	char errorLabelText[100];
 	JoystickReader* buttonReader;
 };
 
@@ -191,9 +193,13 @@ ButtonSelectionDialog::ButtonSelectionDialog(int actionNumber_){
 	buttonReader->callback(OnButtonSelected, this);
 
 	win = new Fl_Window(470, 130, "Press Joystick Button");
-	labelText = std::string("Press button on joystick \"") + JoystickSingleton::Instance().Name() + "\"";
-	Fl_Group* label = new Fl_Group(10, 35, 450, 5, labelText.c_str());
+	sprintf(labelText, "Press button on joystick \"%s\"", JoystickSingleton::Instance().Name());
+	Fl_Group* label = new Fl_Group(10, 35, 450, 5, labelText);
 	label->end();
+	errorLabel = new Fl_Group(15, 70, 450, 5);
+	errorLabel->labelcolor((Fl_Color)1);
+	errorLabel->hide();
+	errorLabel->end();
 	Fl_Button* btn = new Fl_Button(355, 90, 100, 25, "Cancel");
 	btn->callback(OnClose, this);
 	win->callback(OnClose, this);
@@ -207,10 +213,18 @@ ButtonSelectionDialog::~ButtonSelectionDialog(){
 	delete win;
 }
 
-void ButtonSelectionDialog::OnButtonSelected(int button, void* userdata){
+bool ButtonSelectionDialog::OnButtonSelected(int button, void* userdata){
 	ButtonSelectionDialog* self = (ButtonSelectionDialog*)userdata;
-	joyRows[button]->value(self->actionNumber);
-	delete self;
+	if (button >= 8){
+		sprintf(self->errorLabelText, "Button %d not supported!", button);
+		self->errorLabel->label(self->errorLabelText);
+		self->errorLabel->show();
+		return false;
+	} else {
+		joyRows[button]->value(self->actionNumber);
+		delete self;
+		return true;
+	}
 }
 
 void ButtonSelectionDialog::OnClose (Fl_Widget*, void* userdata){
