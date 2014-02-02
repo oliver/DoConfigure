@@ -24,7 +24,7 @@ release: DoConfigure DoConfigure_nosdl
 
 
 DoConfigure: DoConfig.cpp
-	g++ $+ -o $@ -s $$(fltk-config --cxxflags --ldflags) $(SDL_OPTIONS)
+	g++ $+ -o $@ -s $$(fltk-config --cxxflags --ldstaticflags) $(SDL_OPTIONS)
 
 DoConfigure_nosdl: DoConfig.cpp
-	g++ $+ -o $@ -s $$(fltk-config --cxxflags --ldflags)
+	g++ $+ -o $@ -s $$(fltk-config --cxxflags --ldstaticflags)
