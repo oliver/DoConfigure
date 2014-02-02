@@ -13,7 +13,10 @@
 #include "FL/Fl_Radio_Round_Button.H"
 #include "FL/Fl_Choice.H"
 #include "FL/Fl_Check_Button.H"
+
+#ifdef HAVE_SDL
 #include "SDL/SDL.h"
+#endif
 
 #define HEADER "DOUKUTSU20041206"
 #define TEXT "Courier New"
