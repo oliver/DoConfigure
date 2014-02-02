@@ -7,7 +7,7 @@ else
 	-DHAVE_SDL=1
 endif
 
-DIST_FILES=DoConfigure DoConfigure_nosdl COPYING.txt README.txt DoConfig.cpp Makefile
+DIST_FILES:=DoConfigure DoConfigure_nosdl COPYING.txt README.txt DoConfig.cpp Makefile
 
 
 all: DoConfigure
@@ -15,7 +15,7 @@ all: DoConfigure
 clean:
 	rm -f DoConfigure DoConfigure_nosdl
 
-RELEASE_VERSION=$(shell date '+%Y%m%d-%H%M%S')
+RELEASE_VERSION:=$(shell date '+%Y%m%d-%H%M%S')
 release: DoConfigure DoConfigure_nosdl
 	mkdir DoConfigure-$(RELEASE_VERSION)
 	cp $(DIST_FILES) DoConfigure-$(RELEASE_VERSION)/
